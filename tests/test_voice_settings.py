@@ -146,3 +146,41 @@ class TestMergeVoiceSettings:
         merge_voice_settings(sp)
         assert "voice_settings" not in sp["tts_config"]
         assert "tts_config" not in sp["speakers"][0]
+
+
+class TestSpeakerProfileApiSchema:
+    def test_create_schema_accepts_voice_settings(self):
+        from api.routers.speaker_profiles import SpeakerProfileCreate
+
+        data = SpeakerProfileCreate(
+            name="p1",
+            speakers=[
+                {
+                    "name": "Alice",
+                    "voice_id": "v1",
+                    "backstory": "b",
+                    "personality": "p",
+                    "voice_settings": {"stability": 0.4},
+                }
+            ],
+            voice_settings={"style": 0.2},
+        )
+        assert data.voice_settings == {"style": 0.2}
+
+    def test_response_includes_voice_settings(self):
+        from api.routers.speaker_profiles import _profile_to_response
+
+        profile = SpeakerProfile(
+            name="p1",
+            speakers=[
+                {
+                    "name": "Alice",
+                    "voice_id": "v1",
+                    "backstory": "b",
+                    "personality": "p",
+                }
+            ],
+            voice_settings={"stability": 0.6},
+        )
+        response = _profile_to_response(profile)
+        assert response.voice_settings == {"stability": 0.6}

@@ -15,6 +15,7 @@ class SpeakerProfileResponse(BaseModel):
     description: str
     voice_model: Optional[str] = None
     speakers: List[Dict[str, Any]]
+    voice_settings: Optional[Dict[str, Any]] = None
     # Legacy fields (for display/migration awareness)
     tts_provider: Optional[str] = None
     tts_model: Optional[str] = None
@@ -27,6 +28,7 @@ def _profile_to_response(profile: SpeakerProfile) -> SpeakerProfileResponse:
         description=profile.description or "",
         voice_model=profile.voice_model,
         speakers=profile.speakers,
+        voice_settings=profile.voice_settings,
         tts_provider=profile.tts_provider,
         tts_model=profile.tts_model,
     )
@@ -74,6 +76,9 @@ class SpeakerProfileCreate(BaseModel):
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )
+    voice_settings: Optional[Dict[str, Any]] = Field(
+        None, description="Default ElevenLabs voice settings for all speakers"
+    )
     # Legacy fields (accepted but not required)
     tts_provider: Optional[str] = None
     tts_model: Optional[str] = None
@@ -88,6 +93,7 @@ async def create_speaker_profile(profile_data: SpeakerProfileCreate):
             description=profile_data.description,
             voice_model=profile_data.voice_model,
             speakers=profile_data.speakers,
+            voice_settings=profile_data.voice_settings,
             tts_provider=profile_data.tts_provider,
             tts_model=profile_data.tts_model,
         )
@@ -170,6 +176,7 @@ async def duplicate_speaker_profile(profile_id: str):
             description=original.description,
             voice_model=original.voice_model,
             speakers=original.speakers,
+            voice_settings=original.voice_settings,
             tts_provider=original.tts_provider,
             tts_model=original.tts_model,
         )
