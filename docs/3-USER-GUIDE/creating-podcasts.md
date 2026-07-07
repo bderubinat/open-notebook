@@ -192,6 +192,25 @@ Personality: Rigorous, academic but accessible
 Voice Model: ElevenLabs TTS (from registry), Voice: professional male
 ```
 
+#### Advanced Voice Settings (ElevenLabs)
+
+When a speaker profile (or an individual speaker) uses an **ElevenLabs** voice
+model, an "Advanced voice settings" section lets you fine-tune how each voice
+sounds. These map directly to the ElevenLabs `voice_settings` API object:
+
+| Setting | Range | Effect |
+|---|---|---|
+| Stability | 0–1 | Lower = more emotional range, higher = more monotone/consistent |
+| Similarity boost | 0–1 | How closely the generation adheres to the original voice |
+| Style exaggeration | 0–1 | Amplifies the speaking style (adds latency above 0) |
+| Speaker boost | on/off | Boosts similarity to the original speaker |
+| Speed | 0.7–1.2 | Speaking speed multiplier |
+
+Settings can be defined at the **profile level** (default for all speakers)
+and overridden **per speaker** (key by key). Any field left empty uses the
+provider default (stability 0.5, similarity 0.75, style 0, speaker boost on,
+speed 1.0). These settings are ignored by non-ElevenLabs TTS providers.
+
 ### Step 6: Generate Podcast
 
 ```
