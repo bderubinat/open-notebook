@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Fine-grained ElevenLabs voice settings for podcast speaker profiles — an "Advanced voice settings" panel (shown only when the effective voice model is an ElevenLabs one) exposes `stability`, `similarity_boost`, `style`, `speed` and speaker boost, settable at the profile level (default for all speakers) and overridable per speaker. Empty fields fall back to the ElevenLabs provider defaults, and the settings are ignored by non-ElevenLabs TTS providers. Translated across all 14 locales (non-English strings machine-translated, pending native review) (#1001)
 - Documented the flow-driven release process in `.github/RELEASE_PROCESS.md`, including the `ready` to `main` to stable release path, dev/stable image labels, and maintainer verification checklist (#938)
 - List view for the Notebooks page — a tile/list toggle in the header lets you switch between the visual card grid and a compact row layout (name, description, source/note counts, last updated) for easier scanning of large collections. The choice is remembered across reloads and translated across all 14 locales (#885)
 - Documented the `ESPERANTO_TTS_TIMEOUT` environment variable (default `300`s) in the environment reference; raise it for slow or self-hosted TTS providers so long podcast segments don't fail with a timeout (#937)
