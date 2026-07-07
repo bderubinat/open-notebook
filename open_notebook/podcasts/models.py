@@ -7,6 +7,43 @@ from surrealdb import RecordID
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.base import ObjectModel
 
+VOICE_SETTINGS_BOUNDS = {
+    "stability": (0.0, 1.0),
+    "similarity_boost": (0.0, 1.0),
+    "style": (0.0, 1.0),
+    "speed": (0.7, 1.2),
+}
+
+
+def validate_voice_settings(vs: Any, context: str) -> None:
+    """Validate an ElevenLabs voice_settings dict (known keys + bounds).
+
+    None is allowed (= use provider defaults). Raises ValueError otherwise.
+    """
+    if vs is None:
+        return
+    if not isinstance(vs, dict):
+        raise ValueError(f"{context}: voice_settings must be an object")
+    for key, value in vs.items():
+        if key == "use_speaker_boost":
+            if not isinstance(value, bool):
+                raise ValueError(
+                    f"{context}: voice_settings.use_speaker_boost must be a boolean"
+                )
+        elif key in VOICE_SETTINGS_BOUNDS:
+            lo, hi = VOICE_SETTINGS_BOUNDS[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"{context}: voice_settings.{key} must be a number")
+            if not lo <= value <= hi:
+                raise ValueError(
+                    f"{context}: voice_settings.{key} must be between {lo} and {hi}"
+                )
+        else:
+            allowed = sorted([*VOICE_SETTINGS_BOUNDS, "use_speaker_boost"])
+            raise ValueError(
+                f"{context}: unknown voice_settings key '{key}' (allowed: {allowed})"
+            )
+
 
 async def _resolve_model_config(
     model_id: str, max_tokens: Optional[int] = None
@@ -146,6 +183,7 @@ class SpeakerProfile(ObjectModel):
         "tts_provider",
         "tts_model",
         "voice_model",
+        "voice_settings",
     }
 
     name: str = Field(..., description="Unique profile name")
@@ -161,10 +199,23 @@ class SpeakerProfile(ObjectModel):
     voice_model: Optional[str] = Field(
         None, description="Model record ID for TTS"
     )
+    voice_settings: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Default ElevenLabs voice settings applied to all speakers "
+            "(stability, similarity_boost, style, use_speaker_boost, speed)"
+        ),
+    )
 
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )
+
+    @field_validator("voice_settings")
+    @classmethod
+    def validate_profile_voice_settings(cls, v):
+        validate_voice_settings(v, "speaker profile")
+        return v
 
     @field_validator("speakers")
     @classmethod
@@ -177,6 +228,10 @@ class SpeakerProfile(ObjectModel):
             for field in required_fields:
                 if field not in speaker:
                     raise ValueError(f"Speaker missing required field: {field}")
+            validate_voice_settings(
+                speaker.get("voice_settings"),
+                f"speaker '{speaker.get('name', '?')}'",
+            )
         return v
 
     def _prepare_save_data(self) -> dict:
