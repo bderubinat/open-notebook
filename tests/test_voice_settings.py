@@ -2,6 +2,7 @@
 
 import pytest
 
+from commands.podcast_commands import merge_voice_settings
 from open_notebook.podcasts.models import SpeakerProfile, validate_voice_settings
 
 
@@ -81,3 +82,67 @@ class TestSpeakerProfileVoiceSettings:
                 name="p1",
                 speakers=[{**self._speaker, "voice_settings": {"speed": 0.1}}],
             )
+
+
+class TestMergeVoiceSettings:
+    def test_noop_without_settings(self):
+        sp = {"tts_config": {"api_key": "k"}, "speakers": [{"name": "A"}]}
+        merge_voice_settings(sp)
+        assert "voice_settings" not in sp["tts_config"]
+        assert "tts_config" not in sp["speakers"][0]
+
+    def test_profile_level_settings_merged_into_profile_config(self):
+        sp = {
+            "voice_settings": {"stability": 0.3},
+            "tts_config": {"api_key": "k"},
+            "speakers": [{"name": "A"}],
+        }
+        merge_voice_settings(sp)
+        assert sp["tts_config"] == {
+            "api_key": "k",
+            "voice_settings": {"stability": 0.3},
+        }
+        # Speaker inherits via profile config: no redundant per-speaker copy
+        assert "tts_config" not in sp["speakers"][0]
+
+    def test_speaker_settings_override_profile_key_by_key(self):
+        sp = {
+            "voice_settings": {"stability": 0.3, "style": 0.2},
+            "tts_config": {"api_key": "k"},
+            "speakers": [{"name": "A", "voice_settings": {"stability": 0.8}}],
+        }
+        merge_voice_settings(sp)
+        assert sp["speakers"][0]["tts_config"]["voice_settings"] == {
+            "stability": 0.8,
+            "style": 0.2,
+        }
+        assert sp["speakers"][0]["tts_config"]["api_key"] == "k"
+
+    def test_profile_settings_survive_speaker_model_override(self):
+        # Speaker has its own voice_model => its own resolved tts_config;
+        # profile-level settings must still apply to it.
+        sp = {
+            "voice_settings": {"style": 0.5},
+            "tts_config": {"api_key": "k"},
+            "speakers": [{"name": "A", "tts_config": {"api_key": "other"}}],
+        }
+        merge_voice_settings(sp)
+        assert sp["speakers"][0]["tts_config"] == {
+            "api_key": "other",
+            "voice_settings": {"style": 0.5},
+        }
+
+    def test_speaker_settings_without_any_profile_config(self):
+        sp = {"speakers": [{"name": "A", "voice_settings": {"speed": 1.1}}]}
+        merge_voice_settings(sp)
+        assert sp["speakers"][0]["tts_config"] == {"voice_settings": {"speed": 1.1}}
+
+    def test_null_voice_settings_treated_as_absent(self):
+        sp = {
+            "voice_settings": None,
+            "tts_config": {"api_key": "k"},
+            "speakers": [{"name": "A", "voice_settings": None}],
+        }
+        merge_voice_settings(sp)
+        assert "voice_settings" not in sp["tts_config"]
+        assert "tts_config" not in sp["speakers"][0]

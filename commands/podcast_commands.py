@@ -37,6 +37,33 @@ def build_episode_output_dir(data_folder: str) -> tuple[str, Path]:
     return episode_dir_name, output_dir
 
 
+def merge_voice_settings(sp_dict: dict) -> None:
+    """Merge optional ElevenLabs voice_settings into resolved TTS configs.
+
+    Profile-level settings are the default for every speaker; per-speaker
+    settings override them key by key. podcast-creator spreads tts_config
+    into AIFactory.create_text_to_speech(), and esperanto forwards
+    voice_settings to the ElevenLabs API. Providers that don't support
+    voice_settings simply ignore the key.
+    """
+    profile_vs = sp_dict.get("voice_settings") or {}
+    if profile_vs:
+        sp_dict["tts_config"] = {
+            **(sp_dict.get("tts_config") or {}),
+            "voice_settings": profile_vs,
+        }
+    for speaker in sp_dict.get("speakers", []):
+        speaker_vs = speaker.get("voice_settings") or {}
+        merged_vs = {**profile_vs, **speaker_vs}
+        if not merged_vs:
+            continue
+        if not speaker_vs and not speaker.get("tts_config"):
+            # No per-speaker specifics: profile-level tts_config already applies
+            continue
+        base = speaker.get("tts_config") or sp_dict.get("tts_config") or {}
+        speaker["tts_config"] = {**base, "voice_settings": merged_vs}
+
+
 def full_model_dump(model):
     if isinstance(model, BaseModel):
         return model.model_dump()
@@ -208,6 +235,9 @@ async def generate_podcast_command(
                         logger.warning(
                             f"Failed to resolve per-speaker TTS for '{speaker.get('name')}': {e}"
                         )
+
+            # Merge optional ElevenLabs voice_settings into resolved TTS configs
+            merge_voice_settings(sp_dict)
 
         # 6. Generate briefing
         briefing = episode_profile.default_briefing
