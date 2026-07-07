@@ -25,12 +25,21 @@ export interface EpisodeProfile {
   transcript_model?: string | null
 }
 
+export interface VoiceSettings {
+  stability?: number
+  similarity_boost?: number
+  style?: number
+  use_speaker_boost?: boolean
+  speed?: number
+}
+
 export interface SpeakerVoiceConfig {
   name: string
   voice_id: string
   backstory: string
   personality: string
   voice_model?: string | null
+  voice_settings?: VoiceSettings | null
 }
 
 export interface SpeakerProfile {
@@ -39,6 +48,7 @@ export interface SpeakerProfile {
   description: string
   voice_model?: string | null
   speakers: SpeakerVoiceConfig[]
+  voice_settings?: VoiceSettings | null
   // Legacy fields
   tts_provider?: string | null
   tts_model?: string | null

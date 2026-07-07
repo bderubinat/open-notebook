@@ -1,5 +1,7 @@
 export const esES = {
   common: {
+    enabled: "Activado",
+    disabled: "Desactivado",
     search: "Buscar...",
     create: "Nuevo",
     new: "Nuevo",
@@ -728,6 +730,16 @@ export const esES = {
     selectVoiceModel: "Seleccionar modelo de voz",
     perSpeakerTtsOverride: "Anulación de TTS por locutor (opcional)",
     useProfileDefault: "Usar predeterminado del perfil",
+    advancedVoiceSettings: "Ajustes avanzados de voz (ElevenLabs)",
+    advancedVoiceSettingsDesc: "Deja un campo vacío para usar el valor predeterminado del proveedor.",
+    vsStability: "Estabilidad (0–1)",
+    vsSimilarityBoost: "Refuerzo de similitud (0–1)",
+    vsStyle: "Exageración de estilo (0–1)",
+    vsSpeed: "Velocidad (0.7–1.2)",
+    vsSpeakerBoost: "Refuerzo de locutor",
+    vsDefaultPlaceholder: "predeterminado",
+    vsRange01: "Debe estar entre 0 y 1",
+    vsRangeSpeed: "Debe estar entre 0.7 y 1.2",
     setupRequired: "Configuración requerida",
     setupRequiredDesc:
       "Algunos perfiles aún no tienen modelos configurados. Edítalos para seleccionar modelos antes de generar podcasts.",

@@ -1,5 +1,7 @@
 export const bnIN = {
   common: {
+    enabled: "চালু",
+    disabled: "বন্ধ",
     search: "অনুসন্ধান...",
     create: "নতুন",
     new: "নতুন",
@@ -728,6 +730,16 @@ export const bnIN = {
     selectVoiceModel: "ভয়েস মডেল নির্বাচন করুন",
     perSpeakerTtsOverride: "প্রতি স্পিকার TTS ওভাররাইড (ঐচ্ছিক)",
     useProfileDefault: "প্রোফাইল ডিফল্ট ব্যবহার করুন",
+    advancedVoiceSettings: "উন্নত ভয়েস সেটিংস (ElevenLabs)",
+    advancedVoiceSettingsDesc: "প্রোভাইডার ডিফল্ট ব্যবহার করতে কোনো ফিল্ড খালি রাখুন।",
+    vsStability: "স্থিতিশীলতা (0–1)",
+    vsSimilarityBoost: "সাদৃশ্য বুস্ট (0–1)",
+    vsStyle: "স্টাইল অতিরঞ্জন (0–1)",
+    vsSpeed: "গতি (0.7–1.2)",
+    vsSpeakerBoost: "স্পিকার বুস্ট",
+    vsDefaultPlaceholder: "ডিফল্ট",
+    vsRange01: "অবশ্যই 0 এবং 1 এর মধ্যে হতে হবে",
+    vsRangeSpeed: "অবশ্যই 0.7 এবং 1.2 এর মধ্যে হতে হবে",
     setupRequired: "সেটআপ প্রয়োজন",
     setupRequiredDesc:
       "কিছু প্রোফাইলে এখনও মডেল কনফিগার করা হয়নি। পডকাস্ট তৈরির আগে মডেল নির্বাচন করতে সেগুলি সম্পাদনা করুন।",

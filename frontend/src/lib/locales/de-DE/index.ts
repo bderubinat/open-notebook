@@ -3,6 +3,8 @@
 
 export const deDE = {
   common: {
+    enabled: "Aktiviert",
+    disabled: "Deaktiviert",
     search: "Suchen...",
     create: "Neu",
     new: "Neu",
@@ -731,6 +733,16 @@ export const deDE = {
     selectVoiceModel: "Stimmenmodell auswählen",
     perSpeakerTtsOverride: "TTS-Überschreibung pro Sprecher (optional)",
     useProfileDefault: "Profilstandard verwenden",
+    advancedVoiceSettings: "Erweiterte Stimmeinstellungen (ElevenLabs)",
+    advancedVoiceSettingsDesc: "Lasse ein Feld leer, um den Standardwert des Anbieters zu verwenden.",
+    vsStability: "Stabilität (0–1)",
+    vsSimilarityBoost: "Ähnlichkeitsverstärkung (0–1)",
+    vsStyle: "Stilübertreibung (0–1)",
+    vsSpeed: "Geschwindigkeit (0.7–1.2)",
+    vsSpeakerBoost: "Sprecherverstärkung",
+    vsDefaultPlaceholder: "Standard",
+    vsRange01: "Muss zwischen 0 und 1 liegen",
+    vsRangeSpeed: "Muss zwischen 0.7 und 1.2 liegen",
     setupRequired: "Einrichtung erforderlich",
     setupRequiredDesc: "Für einige Profile sind noch keine Modelle konfiguriert. Bearbeite sie und wähle Modelle aus, bevor du Podcasts erzeugst.",
     notConfigured: "Nicht konfiguriert",

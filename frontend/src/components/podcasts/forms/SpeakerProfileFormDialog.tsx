@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
-import type { FieldErrorsImpl } from 'react-hook-form'
+import type { FieldErrorsImpl, Control, FieldPath, UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 
 import { SpeakerProfile } from '@/lib/types/podcasts'
+import type { VoiceSettings } from '@/lib/types/podcasts'
 import {
   useCreateSpeakerProfile,
   useUpdateSpeakerProfile,
@@ -19,15 +20,57 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { ModelSelector } from '@/components/common/ModelSelector'
+import { useModels } from '@/lib/hooks/use-models'
 
 import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/hooks/use-translation'
+
+const numberInput = {
+  setValueAs: (v: unknown) => (v === '' || v == null ? undefined : Number(v)),
+}
+
+const cleanVoiceSettings = (vs?: VoiceSettings | null): VoiceSettings | null => {
+  if (!vs) return null
+  const entries = Object.entries(vs).filter(
+    ([, v]) =>
+      v !== undefined &&
+      v !== null &&
+      !(typeof v === 'number' && Number.isNaN(v))
+  )
+  return entries.length > 0 ? (Object.fromEntries(entries) as VoiceSettings) : null
+}
+
+const voiceSettingsSchema = (t: TFunction) => {
+  const range01 = t('podcasts.vsRange01') || 'Must be between 0 and 1'
+  const rangeSpeed = t('podcasts.vsRangeSpeed') || 'Must be between 0.7 and 1.2'
+  return z
+    .object({
+      stability: z.number().min(0, range01).max(1, range01).optional(),
+      similarity_boost: z.number().min(0, range01).max(1, range01).optional(),
+      style: z.number().min(0, range01).max(1, range01).optional(),
+      use_speaker_boost: z.boolean().optional(),
+      speed: z.number().min(0.7, rangeSpeed).max(1.2, rangeSpeed).optional(),
+    })
+    .optional()
+}
 
 const speakerConfigSchema = (t: TFunction) => z.object({
   name: z.string().min(1, t('common.nameRequired') || 'Name is required'),
@@ -35,6 +78,7 @@ const speakerConfigSchema = (t: TFunction) => z.object({
   backstory: z.string().min(1, t('podcasts.backstoryRequired') || 'Backstory is required'),
   personality: z.string().min(1, t('podcasts.personalityRequired') || 'Personality is required'),
   voice_model: z.string().nullable().optional(),
+  voice_settings: voiceSettingsSchema(t),
 })
 
 const speakerProfileSchema = (t: TFunction) => z.object({
@@ -45,6 +89,7 @@ const speakerProfileSchema = (t: TFunction) => z.object({
     .array(speakerConfigSchema(t))
     .min(1, t('podcasts.speakerCountMin') || 'At least one speaker is required')
     .max(4, t('podcasts.speakerCountMax') || 'You can configure up to 4 speakers'),
+  voice_settings: voiceSettingsSchema(t),
 })
 
 export type SpeakerProfileFormValues = z.infer<ReturnType<typeof speakerProfileSchema>>
@@ -64,6 +109,91 @@ const EMPTY_SPEAKER = {
   voice_model: null as string | null,
 }
 
+const VOICE_SETTING_NUMBER_FIELDS = [
+  { key: 'stability', labelKey: 'podcasts.vsStability', min: 0, max: 1 },
+  { key: 'similarity_boost', labelKey: 'podcasts.vsSimilarityBoost', min: 0, max: 1 },
+  { key: 'style', labelKey: 'podcasts.vsStyle', min: 0, max: 1 },
+  { key: 'speed', labelKey: 'podcasts.vsSpeed', min: 0.7, max: 1.2 },
+] as const
+
+type VoiceSettingsPath = 'voice_settings' | `speakers.${number}.voice_settings`
+
+function VoiceSettingsSection({
+  basePath,
+  register,
+  control,
+  t,
+}: {
+  basePath: VoiceSettingsPath
+  register: UseFormRegister<SpeakerProfileFormValues>
+  control: Control<SpeakerProfileFormValues>
+  t: TFunction
+}) {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger className="flex w-full items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <ChevronDown className="h-4 w-4" />
+        {t('podcasts.advancedVoiceSettings') || 'Advanced voice settings (ElevenLabs)'}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-3">
+        <p className="pb-2 text-xs text-muted-foreground">
+          {t('podcasts.advancedVoiceSettingsDesc') ||
+            'Leave a field empty to use the provider default.'}
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {VOICE_SETTING_NUMBER_FIELDS.map((f) => (
+            <div key={f.key} className="space-y-2">
+              <Label htmlFor={`${basePath}-${f.key}`}>
+                {t(f.labelKey) || f.key}
+              </Label>
+              <Input
+                id={`${basePath}-${f.key}`}
+                type="number"
+                min={f.min}
+                max={f.max}
+                step={0.05}
+                placeholder={t('podcasts.vsDefaultPlaceholder') || 'default'}
+                {...register(
+                  `${basePath}.${f.key}` as FieldPath<SpeakerProfileFormValues>,
+                  numberInput
+                )}
+              />
+            </div>
+          ))}
+          <div className="space-y-2">
+            <Label htmlFor={`${basePath}-use_speaker_boost`}>
+              {t('podcasts.vsSpeakerBoost') || 'Speaker boost'}
+            </Label>
+            <Controller
+              control={control}
+              name={`${basePath}.use_speaker_boost` as FieldPath<SpeakerProfileFormValues>}
+              render={({ field }) => (
+                <Select
+                  value={field.value === true ? 'on' : field.value === false ? 'off' : 'default'}
+                  onValueChange={(v) =>
+                    field.onChange(v === 'on' ? true : v === 'off' ? false : undefined)
+                  }
+                >
+                  <SelectTrigger id={`${basePath}-use_speaker_boost`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">
+                      {t('podcasts.vsDefaultPlaceholder') || 'default'}
+                    </SelectItem>
+                    <SelectItem value="on">{t('common.enabled') || 'Enabled'}</SelectItem>
+                    <SelectItem value="off">{t('common.disabled') || 'Disabled'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 export function SpeakerProfileFormDialog({
   mode,
   open,
@@ -80,9 +210,11 @@ export function SpeakerProfileFormDialog({
         name: initialData.name,
         description: initialData.description ?? '',
         voice_model: initialData.voice_model ?? '',
+        voice_settings: initialData.voice_settings ?? undefined,
         speakers: initialData.speakers?.map((speaker) => ({
           ...speaker,
           voice_model: speaker.voice_model ?? null,
+          voice_settings: speaker.voice_settings ?? undefined,
         })) ?? [{ ...EMPTY_SPEAKER }],
       }
     }
@@ -100,6 +232,7 @@ export function SpeakerProfileFormDialog({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<SpeakerProfileFormValues>({
     resolver: zodResolver(speakerProfileSchema(t)),
@@ -114,6 +247,17 @@ export function SpeakerProfileFormDialog({
     control,
     name: 'speakers',
   })
+
+  const { data: models } = useModels()
+  const profileVoiceModel = watch('voice_model')
+  const speakerVoiceModels = watch('speakers')
+
+  const isElevenLabs = useCallback(
+    (modelId?: string | null) =>
+      !!modelId &&
+      models?.find((m) => m.id === modelId)?.provider === 'elevenlabs',
+    [models]
+  )
 
   const speakersArrayError = (
     errors.speakers as FieldErrorsImpl<{ root?: { message?: string } }> | undefined
@@ -130,9 +274,11 @@ export function SpeakerProfileFormDialog({
     const payload = {
       ...values,
       description: values.description ?? '',
+      voice_settings: cleanVoiceSettings(values.voice_settings),
       speakers: values.speakers.map((s) => ({
         ...s,
         voice_model: s.voice_model || null,
+        voice_settings: cleanVoiceSettings(s.voice_settings),
       })),
     }
 
@@ -212,6 +358,14 @@ export function SpeakerProfileFormDialog({
                 </div>
               )}
             />
+            {isElevenLabs(profileVoiceModel) ? (
+              <VoiceSettingsSection
+                basePath="voice_settings"
+                register={register}
+                control={control}
+                t={t}
+              />
+            ) : null}
           </div>
 
           <div className="space-y-4">
@@ -328,6 +482,16 @@ export function SpeakerProfileFormDialog({
                     </div>
                   )}
                 />
+                {isElevenLabs(
+                  speakerVoiceModels?.[index]?.voice_model || profileVoiceModel
+                ) ? (
+                  <VoiceSettingsSection
+                    basePath={`speakers.${index}.voice_settings`}
+                    register={register}
+                    control={control}
+                    t={t}
+                  />
+                ) : null}
               </div>
             ))}
 
