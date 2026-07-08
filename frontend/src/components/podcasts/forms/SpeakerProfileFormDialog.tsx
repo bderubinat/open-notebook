@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect } from 'react'
-import { Controller, useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import type { FieldErrorsImpl, Control, FieldPath, UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -129,8 +129,10 @@ function VoiceSettingsSection({
   control: Control<SpeakerProfileFormValues>
   t: TFunction
 }) {
+  const values = useWatch({ control, name: basePath })
+  const hasValues = !!cleanVoiceSettings(values as VoiceSettings | undefined)
   return (
-    <Collapsible>
+    <Collapsible defaultOpen={hasValues}>
       <CollapsibleTrigger className="flex w-full items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ChevronDown className="h-4 w-4" />
         {t('podcasts.advancedVoiceSettings') || 'Advanced voice settings (ElevenLabs)'}
