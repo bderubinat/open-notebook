@@ -1,0 +1,14 @@
+-- Migration 19: ElevenLabs advanced voice settings
+-- speaker_profile is SCHEMAFULL: voice_settings fields must be declared,
+-- otherwise SurrealDB silently discards them on write.
+-- FLEXIBLE allows arbitrary sub-keys of the object on a SCHEMAFULL table
+-- (same pattern as episode.speaker_profile FLEXIBLE TYPE object in migration 7).
+
+-- Profile-level voice settings.
+DEFINE FIELD IF NOT EXISTS voice_settings ON TABLE speaker_profile FLEXIBLE TYPE option<object>;
+
+-- Per-speaker voice settings. The nested voice_settings object is only persisted
+-- when its containing array element (speakers[*]) is itself FLEXIBLE; a declared
+-- FLEXIBLE sub-field is otherwise clamped by the SCHEMAFULL parent element.
+DEFINE FIELD OVERWRITE speakers.* ON TABLE speaker_profile FLEXIBLE TYPE object;
+DEFINE FIELD IF NOT EXISTS speakers.*.voice_settings ON TABLE speaker_profile FLEXIBLE TYPE option<object>;

@@ -1,0 +1,5 @@
+-- Migration 19 rollback: Remove ElevenLabs voice settings fields from speaker_profile
+
+REMOVE FIELD IF EXISTS voice_settings ON TABLE speaker_profile;
+REMOVE FIELD IF EXISTS speakers.*.voice_settings ON TABLE speaker_profile;
+DEFINE FIELD OVERWRITE speakers.* ON TABLE speaker_profile TYPE object;
