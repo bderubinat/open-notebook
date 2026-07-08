@@ -1,5 +1,7 @@
 """Tests for ElevenLabs voice_settings validation and TTS config merge."""
 
+import uuid
+
 import pytest
 
 from commands.podcast_commands import merge_voice_settings
@@ -184,3 +186,66 @@ class TestSpeakerProfileApiSchema:
         )
         response = _profile_to_response(profile)
         assert response.voice_settings == {"stability": 0.6}
+
+
+class TestSpeakerProfileVoiceSettingsPersistence:
+    """Round-trip voice_settings through SurrealDB (Bug #1 regression guard).
+
+    The in-memory tests above never touch the database, so they cannot catch a
+    schema that silently drops the column on write. These tests save a profile
+    and read it back to prove `voice_settings` survives persistence, both at the
+    profile level and per speaker. Requires a live SurrealDB (migration >= 19).
+    """
+
+    @pytest.mark.asyncio
+    async def test_voice_settings_round_trip_via_get_by_name(self):
+        name = f"vs_persist_{uuid.uuid4().hex[:8]}"
+        profile = SpeakerProfile(
+            name=name,
+            voice_settings={"stability": 0.42, "similarity_boost": 0.75},
+            speakers=[
+                {
+                    "name": "Alice",
+                    "voice_id": "v1",
+                    "backstory": "b",
+                    "personality": "p",
+                    "voice_settings": {"style": 0.2, "use_speaker_boost": True},
+                }
+            ],
+        )
+        await profile.save()
+        try:
+            assert profile.id is not None
+
+            reloaded = await SpeakerProfile.get_by_name(name)
+            assert reloaded is not None
+            # Profile-level settings persisted verbatim.
+            assert reloaded.voice_settings == {
+                "stability": 0.42,
+                "similarity_boost": 0.75,
+            }
+            # Per-speaker settings persisted verbatim.
+            assert reloaded.speakers[0]["voice_settings"] == {
+                "style": 0.2,
+                "use_speaker_boost": True,
+            }
+        finally:
+            await profile.delete()
+
+    @pytest.mark.asyncio
+    async def test_absent_voice_settings_round_trip_as_none(self):
+        name = f"vs_absent_{uuid.uuid4().hex[:8]}"
+        profile = SpeakerProfile(
+            name=name,
+            speakers=[
+                {"name": "Bob", "voice_id": "v2", "backstory": "b", "personality": "p"}
+            ],
+        )
+        await profile.save()
+        try:
+            reloaded = await SpeakerProfile.get_by_name(name)
+            assert reloaded is not None
+            assert reloaded.voice_settings is None
+            assert reloaded.speakers[0].get("voice_settings") is None
+        finally:
+            await profile.delete()
